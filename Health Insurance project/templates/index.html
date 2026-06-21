@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}FraudGuard AI — Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="hero">
+    <h1>🛡️ Health Insurance Claim Fraud Detection</h1>
+    <p>AI-powered ensemble system using XGBoost, LightGBM, LSTM, Isolation Forest, and Autoencoders to detect fraudulent health insurance claims in real time.</p>
+    <div class="hero-actions">
+        <a href="/predict"   class="btn btn-white">🔍 Analyze a Claim</a>
+        <a href="/dashboard" class="btn btn-ghost">📊 Model Performance</a>
+    </div>
+</div>
+
+{% if not models_loaded %}
+<div class="alert alert-warning mb-3">
+    ⚠️ <strong>Demo Mode:</strong> Trained models not found. Run the Jupyter notebook to train all models, then restart the Flask app. Predictions use a rule-based heuristic.
+</div>
+{% endif %}
+
+<!-- KPI CARDS -->
+<div class="grid-4 mb-3">
+<div class="stat-card danger">
+    <div class="stat-label">Total Fraud Cases</div>
+    <div class="stat-value">{{ "{:,}".format(stats.fraud_count) if stats else '2,000' }}</div>
+    <div class="stat-sub">{{ stats.fraud_rate if stats else '10.0' }}% of all claims</div>
+</div>
+<div class="stat-card success">
+    <div class="stat-label">Legitimate Claims</div>
+    <div class="stat-value">{{ "{:,}".format(stats.legit_count) if stats else '18,000' }}</div>
+    <div class="stat-sub">{{ (100 - (stats.fraud_rate if stats else 10.0)) | round(1) }}% of all claims</div>
+</div>
+<div class="stat-card primary">
+    <div class="stat-label">Total Claims</div>
+    <div class="stat-value">{{ "{:,}".format(stats.total) if stats else '20,000' }}</div>
+    <div class="stat-sub">Synthetic dataset</div>
+</div>
+<div class="stat-card warning">
+    <div class="stat-label">Avg Fraud Claim</div>
+    <div class="stat-value">${{ "{:,.0f}".format(stats.avg_fraud_claim) if stats else '4,500' }}</div>
+    <div class="stat-sub">vs ${{ "{:,.0f}".format(stats.avg_claim) if stats else '1,500' }} avg overall</div>
+</div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">📈 Monthly Fraud Trend</div>
+        <canvas id="trendChart" height="180"></canvas>
+    </div>
+    <div class="card">
+        <div class="card-header">🏥 Fraud Rate by Specialty</div>
+        <canvas id="specChart" height="180"></canvas>
+    </div>
+</div>
+
+<!-- MODEL OVERVIEW TABLE -->
+<div class="card mb-3">
+    <div class="card-header">🤖 Ensemble Models Overview</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>Type</th>
+                <th>Role</th>
+                <th>Strength</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>XGBoost</strong></td><td>Gradient Boosting</td><td>Primary Classifier</td><td>Handles non-linear patterns, feature interactions</td></tr>
+            <tr><td><strong>LightGBM</strong></td><td>Gradient Boosting</td><td>Primary Classifier</td><td>Fast training, leaf-wise growth, handles imbalance</td></tr>
+            <tr><td><strong>LSTM</strong></td><td>Deep Learning (RNN)</td><td>Temporal Pattern</td><td>Captures sequential claim behaviour over time</td></tr>
+            <tr><td><strong>Isolation Forest</strong></td><td>Anomaly Detection</td><td>Outlier Scoring</td><td>Unsupervised, detects novel fraud patterns</td></tr>
+            <tr><td><strong>Autoencoder</strong></td><td>Deep Learning (AE)</td><td>Anomaly Detection</td><td>Reconstruction error flags unusual claims</td></tr>
+            <tr><td><strong>Stacking Ensemble</strong></td><td>Meta-Learner (LR)</td><td>Final Decision</td><td>Combines strengths of all models via OOF predictions</td></tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+const monthly_labels = {{ stats.monthly_labels | default([]) | tojson }};
+const monthly_fraud  = {{ stats.monthly_fraud  | default([]) | tojson }};
+const monthly_total  = {{ stats.monthly_total  | default([]) | tojson }};
+const spec_labels    = {{ stats.spec_labels    | default([]) | tojson }};
+const spec_rates     = {{ stats.spec_fraud_rates | default([]) | tojson }};
+
+// Trend chart
+if (monthly_labels.length > 0) {
+    new Chart(document.getElementById("trendChart"), {
+        type: "line",
+        data: {
+            labels: monthly_labels,
+            datasets: [
+                { label: "Fraud",  data: monthly_fraud, fill:true, backgroundColor:"rgba(220,38,38,.12)",
+                  borderColor:"#dc2626", tension:.4, pointRadius:3, borderWidth:2 },
+            ]
+        },
+        options: { plugins:{legend:{position:"top"}}, scales:{y:{beginAtZero:true}}, responsive:true }
+    });
+}
+
+// Specialty chart
+if (spec_labels.length > 0) {
+    new Chart(document.getElementById("specChart"), {
+        type: "bar",
+        data: {
+            labels: spec_labels,
+            datasets:[{ label:"Fraud Rate (%)", data: spec_rates,
+                backgroundColor:["#dc2626","#f97316","#eab308","#22c55e","#3b82f6"] }]
+        },
+        options: { plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, title:{display:true,text:"%"}}}, responsive:true }
+    });
+}
+{% endblock %}

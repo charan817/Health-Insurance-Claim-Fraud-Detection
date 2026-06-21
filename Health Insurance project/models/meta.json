@@ -1,0 +1,69 @@
+{
+  "feature_cols": [
+    "provider_specialty",
+    "diagnosis_code",
+    "procedure_code",
+    "claim_amount",
+    "approved_amount",
+    "num_procedures",
+    "num_diagnoses",
+    "patient_age",
+    "patient_gender",
+    "insurance_type",
+    "prior_claims_6m",
+    "days_in_hospital",
+    "emergency_flag",
+    "chronic_condition",
+    "lab_tests_ordered",
+    "prescriptions",
+    "approval_ratio",
+    "claim_day_of_week",
+    "claim_month",
+    "los",
+    "procedures_per_day",
+    "amount_per_procedure",
+    "provider_avg_claim",
+    "provider_fraud_rate",
+    "provider_claim_count",
+    "patient_avg_claim",
+    "patient_claim_count"
+  ],
+  "best_model": "XGBoost",
+  "results_summary": {
+    "XGBoost": {
+      "auc": 1.0,
+      "ap": 1.0,
+      "f1": 1.0
+    },
+    "LightGBM": {
+      "auc": 1.0,
+      "ap": 1.0,
+      "f1": 1.0
+    },
+    "MLP_NeuralNet": {
+      "auc": 1.0,
+      "ap": 1.0,
+      "f1": 1.0
+    },
+    "IsolationForest": {
+      "auc": 0.9999458333333333,
+      "ap": 0.9995223383364648,
+      "f1": 0.9060022650056625
+    },
+    "PCA_Autoencoder": {
+      "auc": 1.0,
+      "ap": 1.0,
+      "f1": 0.3673469387755102
+    },
+    "Ensemble_WeightedVoting": {
+      "auc": 1.0,
+      "ap": 1.0,
+      "f1": 1.0
+    },
+    "Ensemble_Stacking": {
+      "auc": 1.0,
+      "ap": 1.0,
+      "f1": 1.0
+    }
+  }
+}

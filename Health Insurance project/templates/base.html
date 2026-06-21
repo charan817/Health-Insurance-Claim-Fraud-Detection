@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FraudGuard AI{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary:   #2563eb;
+            --primary-d: #1d4ed8;
+            --danger:    #dc2626;
+            --warning:   #d97706;
+            --success:   #16a34a;
+            --bg:        #f8fafc;
+            --surface:   #ffffff;
+            --border:    #e2e8f0;
+            --text:      #0f172a;
+            --muted:     #64748b;
+            --radius:    12px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* NAV */
+        nav { background: var(--surface); border-bottom: 1px solid var(--border);
+              padding: 0 2rem; display: flex; align-items: center; gap: 2rem; height: 60px; position: sticky; top:0; z-index:100; }
+        .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--primary); text-decoration:none;
+                     display: flex; align-items:center; gap:.5rem; }
+        .nav-brand span { font-size:1.3rem; }
+        .nav-links { display: flex; gap: 1.5rem; margin-left: auto; }
+        .nav-links a { text-decoration:none; color:var(--muted); font-size:.9rem; font-weight:500; transition:.2s; padding:.4rem .8rem; border-radius:6px; }
+        .nav-links a:hover, .nav-links a.active { color:var(--primary); background:#eff6ff; }
+        .badge-demo { background:#fef3c7; color:#92400e; font-size:.7rem; padding:2px 8px; border-radius:20px; font-weight:600; }
+
+        /* MAIN */
+        main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        /* CARDS */
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+        .card-header { font-weight: 600; font-size: 1rem; margin-bottom: 1rem; color: var(--text); display:flex; align-items:center; gap:.5rem; }
+
+        /* GRID */
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+
+        /* STAT CARDS */
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+                     padding: 1.25rem 1.5rem; }
+        .stat-label { font-size: .78rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing:.05em; }
+        .stat-value { font-size: 2rem; font-weight: 700; margin: .25rem 0; }
+        .stat-sub   { font-size: .8rem; color: var(--muted); }
+        .stat-card.danger  { border-left: 4px solid var(--danger);  }
+        .stat-card.success { border-left: 4px solid var(--success); }
+        .stat-card.warning { border-left: 4px solid var(--warning); }
+        .stat-card.primary { border-left: 4px solid var(--primary); }
+        .stat-card.danger  .stat-value { color: var(--danger);  }
+        .stat-card.success .stat-value { color: var(--success); }
+        .stat-card.warning .stat-value { color: var(--warning); }
+        .stat-card.primary .stat-value { color: var(--primary); }
+
+        /* BUTTONS */
+        .btn { display:inline-flex; align-items:center; gap:.5rem; padding:.65rem 1.4rem; border-radius:8px;
+               font-weight:600; font-size:.9rem; cursor:pointer; border:none; transition:.2s; text-decoration:none; }
+        .btn-primary { background: var(--primary); color:#fff; }
+        .btn-primary:hover { background: var(--primary-d); }
+        .btn-outline { background:transparent; color:var(--primary); border:1.5px solid var(--primary); }
+        .btn-outline:hover { background:#eff6ff; }
+        .btn-danger  { background: var(--danger);  color:#fff; }
+
+        /* FORM */
+        .form-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 1rem; }
+        .form-group { display: flex; flex-direction: column; gap: .4rem; }
+        .form-group label { font-size: .82rem; font-weight: 600; color: var(--text); }
+        .form-group input, .form-group select {
+            padding: .6rem .9rem; border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: .9rem; color: var(--text); background: var(--bg); transition: .2s;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); background:#fff; }
+        .form-section-title { font-weight: 700; color: var(--primary); font-size: .9rem;
+                              margin: 1.5rem 0 .75rem; padding-bottom:.5rem; border-bottom: 2px solid #eff6ff;
+                              grid-column: 1/-1; text-transform: uppercase; letter-spacing: .05em; }
+
+        /* HERO */
+        .hero { background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%);
+                border-radius: var(--radius); padding: 3rem 2.5rem; color: white; margin-bottom: 2rem;
+                position: relative; overflow: hidden; }
+        .hero::after { content:''; position:absolute; right:-80px; top:-80px; width:300px; height:300px;
+                       background:rgba(255,255,255,.05); border-radius:50%; }
+        .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom:.75rem; }
+        .hero p  { opacity: .85; max-width: 600px; line-height: 1.6; margin-bottom: 1.5rem; }
+        .hero-actions { display:flex; gap:1rem; }
+        .btn-white { background:#fff; color:var(--primary); }
+        .btn-white:hover { background:#f0f4ff; }
+        .btn-ghost { background:rgba(255,255,255,.15); color:#fff; border:1.5px solid rgba(255,255,255,.3); }
+        .btn-ghost:hover { background:rgba(255,255,255,.25); }
+
+        /* RISK */
+        .risk-meter { margin: 1.5rem 0; }
+        .risk-bar-wrap { background: #f1f5f9; border-radius: 99px; height: 18px; overflow: hidden; }
+        .risk-bar { height: 100%; border-radius: 99px; transition: width 1s ease; }
+        .risk-low    { background: linear-gradient(90deg, #22c55e, #16a34a); }
+        .risk-medium { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .risk-high   { background: linear-gradient(90deg, #f87171, #dc2626); }
+        .risk-labels { display:flex; justify-content:space-between; font-size:.75rem; color:var(--muted); margin-top:.3rem; }
+
+        /* TABLE */
+        table { width:100%; border-collapse:collapse; font-size:.88rem; }
+        th { background:#f1f5f9; padding:.7rem 1rem; text-align:left; font-weight:600; font-size:.78rem;
+             text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+        td { padding:.75rem 1rem; border-bottom:1px solid var(--border); }
+        tr:last-child td { border-bottom:none; }
+        tr:hover td { background:#fafbfc; }
+
+        /* BADGES */
+        .badge { display:inline-flex; align-items:center; padding:.25rem .75rem; border-radius:99px; font-size:.75rem; font-weight:600; }
+        .badge-high    { background:#fee2e2; color:#991b1b; }
+        .badge-medium  { background:#fef3c7; color:#92400e; }
+        .badge-low     { background:#dcfce7; color:#166534; }
+        .badge-fraud   { background:#fee2e2; color:#991b1b; }
+        .badge-legit   { background:#dcfce7; color:#166534; }
+
+        /* ALERT */
+        .alert { padding:1rem 1.25rem; border-radius:8px; font-size:.88rem; margin-bottom:1rem; }
+        .alert-warning { background:#fefce8; border:1px solid #fde047; color:#854d0e; }
+        .alert-danger  { background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; }
+        .alert-success { background:#f0fdf4; border:1px solid #86efac; color:#166534; }
+        .alert-info    { background:#eff6ff; border:1px solid #93c5fd; color:#1e40af; }
+
+        /* UTILS */
+        .text-muted { color: var(--muted); }
+        .text-sm    { font-size: .82rem; }
+        .mt-1 { margin-top:.5rem; }
+        .mt-2 { margin-top:1rem; }
+        .mt-3 { margin-top:1.5rem; }
+        .mb-2 { margin-bottom:1rem; }
+        .mb-3 { margin-bottom:1.5rem; }
+        .flex  { display:flex; }
+        .items-center { align-items:center; }
+        .gap-1 { gap:.5rem; }
+        .gap-2 { gap:1rem; }
+        .justify-between { justify-content:space-between; }
+        .w-full { width:100%; }
+        .font-bold { font-weight:700; }
+        .text-right { text-align:right; }
+
+        @media (max-width:768px) {
+            .grid-4,.grid-3,.grid-2 { grid-template-columns:1fr 1fr; }
+            .form-grid { grid-template-columns:1fr; }
+            .hero h1 { font-size:1.5rem; }
+            .hero-actions { flex-direction:column; }
+        }
+    </style>
+    <style>{% block extra_style %}{% endblock %}</style>
+</head>
+<body>
+<nav>
+    <a href="/" class="nav-brand"><span>🛡️</span> FraudGuard AI</a>
+    <div class="nav-links">
+        <a href="/"          class="{% if request.endpoint=='index' %}active{% endif %}">Dashboard</a>
+        <a href="/predict"   class="{% if request.endpoint=='predict' %}active{% endif %}">Analyze Claim</a>
+        <a href="/dashboard" class="{% if request.endpoint=='dashboard' %}active{% endif %}">Model Performance</a>
+        {% if not models_loaded %}<span class="badge-demo">DEMO MODE</span>{% endif %}
+    </div>
+</nav>
+<main>
+    {% block content %}{% endblock %}
+</main>
+<script>{% block scripts %}{% endblock %}</script>
+</body>
+</html>

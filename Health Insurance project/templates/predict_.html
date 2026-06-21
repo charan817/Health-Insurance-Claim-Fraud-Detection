@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% block title %}Analyze Claim — FraudGuard AI{% endblock %}
+
+{% block extra_style %}
+.samples-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
+.sample-card { border: 2px solid var(--border); border-radius: 10px; padding: 1rem; cursor: pointer;
+               transition: all .2s; background: var(--surface); position: relative; }
+.sample-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.sample-card.legit  { border-color: #86efac; }
+.sample-card.legit:hover  { border-color: #16a34a; background: #f0fdf4; }
+.sample-card.fraud  { border-color: #fca5a5; }
+.sample-card.fraud:hover  { border-color: #dc2626; background: #fef2f2; }
+.sample-badge { display:inline-flex; align-items:center; gap:.3rem; font-size:.72rem; font-weight:700;
+                padding:.2rem .6rem; border-radius:99px; margin-bottom:.5rem; }
+.sample-badge.legit { background:#dcfce7; color:#166534; }
+.sample-badge.fraud { background:#fee2e2; color:#991b1b; }
+.sample-title { font-weight:700; font-size:.88rem; margin-bottom:.35rem; color: var(--text); }
+.sample-desc  { font-size:.76rem; color: var(--muted); line-height:1.4; }
+.sample-stats { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
+.sample-stat  { font-size:.72rem; background: #f1f5f9; padding:.15rem .5rem; border-radius:4px; color:var(--muted); }
+.sample-card.active { box-shadow: 0 0 0 3px var(--primary); border-color: var(--primary) !important; }
+@media (max-width: 768px) { .samples-grid { grid-template-columns: 1fr 1fr; } }
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-2 mb-3" style="color:var(--muted); font-size:.88rem;">
+    <a href="/" style="color:var(--muted); text-decoration:none;">Dashboard</a> /
+    <span style="color:var(--text);">Analyze Claim</span>
+</div>
+
+<div style="max-width:900px;">
+    <h2 style="font-size:1.4rem; font-weight:700; margin-bottom:.5rem;">🔍 Analyze Insurance Claim</h2>
+    <p class="text-muted text-sm mb-3">Enter claim details below, or <strong>click a sample</strong> to auto-fill the form instantly.</p>
+
+    {% if not models_loaded %}
+    <div class="alert alert-warning mb-3">
+        ⚠️ <strong>Demo Mode:</strong> Using heuristic scoring. Train models via the notebook for ML predictions.
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-danger mb-3">❌ {{ error }}</div>
+    {% endif %}
+
+    <!-- ── Sample Claims ─────────────────────────────────────────── -->
+    <div class="card mb-3">
+        <div class="card-header">⚡ Quick Samples — click any card to auto-fill the form</div>
+        <div class="samples-grid">
+
+            <div class="sample-card legit" onclick="fillSample('legit1')" id="card-legit1">
+                <div class="sample-badge legit">✅ Legitimate</div>
+                <div class="sample-title">Routine GP Visit</div>
+                <div class="sample-desc">Annual check-up, single procedure, standard prescription. Low-risk profile.</div>
+                <div class="sample-stats">
+                    <span class="sample-stat">$850 claim</span>
+                    <span class="sample-stat">1 procedure</span>
+                    <span class="sample-stat">0 prior claims</span>
+                </div>
+            </div>
+
+            <div class="sample-card legit" onclick="fillSample('legit2')" id="card-legit2">
+                <div class="sample-badge legit">✅ Legitimate</div>
+                <div class="sample-title">Cardiology Follow-up</div>
+                <div class="sample-desc">Chronic heart patient, 3-day stay, appropriate tests for condition.</div>
+                <div class="sample-stats">
+                    <span class="sample-stat">$3,200 claim</span>
+                    <span class="sample-stat">3 procedures</span>
+                    <span class="sample-stat">2 prior claims</span>
+                </div>
+            </div>
+
+            <div class="sample-card legit" onclick="fillSample('legit3')" id="card-legit3">
+                <div class="sample-badge legit">✅ Legitimate</div>
+                <div class="sample-title">Emergency Surgery</div>
+                <div class="sample-desc">Appendectomy, 5-day stay, high approval ratio, genuine emergency case.</div>
+                <div class="sample-stats">
+                    <span class="sample-stat">$7,500 claim</span>
+                    <span class="sample-stat">4 procedures</span>
+                    <span class="sample-stat">Emergency ⚠️</span>
+                </div>
+            </div>
+
+            <div class="sample-card fraud" onclick="fillSample('fraud1')" id="card-fraud1">
+                <div class="sample-badge fraud">🚨 Fraudulent</div>
+                <div class="sample-title">Phantom Billing</div>
+                <div class="sample-desc">Procedures never performed. 0-day stay billed as surgery. Very low approval ratio.</div>
+                <div class="sample-stats">
+                    <span class="sample-stat">$8,900 claim</span>
+                    <span class="sample-stat">12 procedures</span>
+                    <span class="sample-stat">0-day stay</span>
+                </div>
+            </div>
+
+            <div class="sample-card fraud" onclick="fillSample('fraud2')" id="card-fraud2">
+                <div class="sample-badge fraud">🚨 Fraudulent</div>
+                <div class="sample-title">Upcoding</div>
+                <div class="sample-desc">Simple GP visit billed as complex surgery. Excessive lab tests and prescriptions.</div>
+                <div class="sample-stats">
+                    <span class="sample-stat">$5,400 claim</span>
+                    <span class="sample-stat">9 procedures</span>
+                    <span class="sample-stat">15 lab tests</span>
+                </div>
+            </div>
+
+            <div class="sample-card fraud" onclick="fillSample('fraud3')" id="card-fraud3">
+                <div class="sample-badge fraud">🚨 Fraudulent</div>
+                <div class="sample-title">Repeat Fraud Pattern</div>
+                <div class="sample-desc">Patient with 14 prior claims in 6 months. Over-prescribing, inflated amounts.</div>
+                <div class="sample-stats">
+                    <span class="sample-stat">$6,200 claim</span>
+                    <span class="sample-stat">14 prior claims</span>
+                    <span class="sample-stat">12 prescriptions</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── Claim Form ─────────────────────────────────────────────── -->
+    <form method="POST" action="/predict" id="claimForm">
+        <div class="card mb-3">
+            <div class="form-grid">
+                <div class="form-section-title">👤 Patient Information</div>
+                <div class="form-group">
+                    <label>Patient Age</label>
+                    <input type="number" name="patient_age" id="f_patient_age" value="45" min="1" max="120" required>
+                </div>
+                <div class="form-group">
+                    <label>Gender</label>
+                    <select name="gender" id="f_gender">
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Insurance Type</label>
+                    <select name="insurance_type" id="f_insurance_type">
+                        <option value="PPO">PPO</option>
+                        <option value="HMO">HMO</option>
+                        <option value="EPO">EPO</option>
+                        <option value="Medicare">Medicare</option>
+                        <option value="Medicaid">Medicaid</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Prior Claims (last 6 months)</label>
+                    <input type="number" name="prior_claims_6m" id="f_prior_claims_6m" value="1" min="0" max="50" required>
+                </div>
+                <div class="form-group">
+                    <label>Chronic Condition?</label>
+                    <select name="chronic_condition" id="f_chronic_condition">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="form-section-title">🏥 Provider & Claim Details</div>
+                <div class="form-group">
+                    <label>Provider Specialty</label>
+                    <select name="specialty" id="f_specialty">
+                        <option>General Practice</option>
+                        <option>Cardiology</option>
+                        <option>Orthopedics</option>
+                        <option>Neurology</option>
+                        <option>Oncology</option>
+                        <option>Dermatology</option>
+                        <option>Psychiatry</option>
+                        <option>Emergency Medicine</option>
+                        <option>Radiology</option>
+                        <option>Surgery</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Emergency Case?</label>
+                    <select name="emergency_flag" id="f_emergency_flag">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Diagnosis Code ID (1–200)</label>
+                    <input type="number" name="diagnosis_code_id" id="f_diagnosis_code_id" value="15" min="1" max="200" required>
+                </div>
+                <div class="form-group">
+                    <label>Procedure Code ID (1–200)</label>
+                    <input type="number" name="procedure_code_id" id="f_procedure_code_id" value="20" min="1" max="200" required>
+                </div>
+
+                <div class="form-section-title">💰 Financial Details</div>
+                <div class="form-group">
+                    <label>Claim Amount ($)</label>
+                    <input type="number" name="claim_amount" id="claimAmt" value="1500" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Approved Amount ($)</label>
+                    <input type="number" name="approved_amount" id="approvedAmt" value="1350" min="0" step="0.01" required>
+                </div>
+
+                <div class="form-section-title">🩺 Clinical Details</div>
+                <div class="form-group">
+                    <label>Number of Procedures</label>
+                    <input type="number" name="num_procedures" id="f_num_procedures" value="2" min="1" max="50" required>
+                </div>
+                <div class="form-group">
+                    <label>Number of Diagnoses</label>
+                    <input type="number" name="num_diagnoses" id="f_num_diagnoses" value="1" min="1" max="20" required>
+                </div>
+                <div class="form-group">
+                    <label>Days in Hospital (LOS)</label>
+                    <input type="number" name="los" id="f_los" value="2" min="0" max="365" required>
+                </div>
+                <div class="form-group">
+                    <label>Lab Tests Ordered</label>
+                    <input type="number" name="lab_tests" id="f_lab_tests" value="2" min="0" max="50" required>
+                </div>
+                <div class="form-group">
+                    <label>Prescriptions</label>
+                    <input type="number" name="prescriptions" id="f_prescriptions" value="1" min="0" max="50" required>
+                </div>
+
+                <div class="form-section-title">📊 Provider Aggregates (optional)</div>
+                <div class="form-group">
+                    <label>Provider Avg Claim ($)</label>
+                    <input type="number" name="provider_avg_claim" id="f_provider_avg_claim" value="1500" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Provider Historical Fraud Rate (0–1)</label>
+                    <input type="number" name="provider_fraud_rate" id="f_provider_fraud_rate" value="0.05" min="0" max="1" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Provider Total Claims</label>
+                    <input type="number" name="provider_claim_count" id="f_provider_claim_count" value="50" min="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval ratio preview -->
+        <div class="card mb-3" style="padding:1rem 1.5rem;">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-muted">Approval Ratio Preview</span>
+                <span id="ratioDisplay" style="font-weight:700; font-size:1.1rem;">90.0%</span>
+            </div>
+            <div class="risk-bar-wrap mt-1" style="height:10px;">
+                <div class="risk-bar" id="ratioBar" style="width:90%; background: linear-gradient(90deg,#22c55e,#16a34a);"></div>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary" style="font-size:1rem; padding:.8rem 2rem;">
+                🔍 Analyze Claim
+            </button>
+            <button type="reset" class="btn btn-outline" onclick="clearActive()">Reset</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+const SAMPLES = {
+    legit1: { patient_age:38, gender:"F", insurance_type:"PPO", prior_claims_6m:0, chronic_condition:"0",
+              specialty:"General Practice", emergency_flag:"0", diagnosis_code_id:12, procedure_code_id:8,
+              claim_amount:850, approved_amount:810, num_procedures:1, num_diagnoses:1, los:0,
+              lab_tests:1, prescriptions:1, provider_avg_claim:920, provider_fraud_rate:0.02, provider_claim_count:180 },
+    legit2: { patient_age:67, gender:"M", insurance_type:"Medicare", prior_claims_6m:2, chronic_condition:"1",
+              specialty:"Cardiology", emergency_flag:"0", diagnosis_code_id:34, procedure_code_id:55,
+              claim_amount:3200, approved_amount:2950, num_procedures:3, num_diagnoses:2, los:3,
+              lab_tests:4, prescriptions:3, provider_avg_claim:2800, provider_fraud_rate:0.04, provider_claim_count:320 },
+    legit3: { patient_age:29, gender:"M", insurance_type:"HMO", prior_claims_6m:0, chronic_condition:"0",
+              specialty:"Surgery", emergency_flag:"1", diagnosis_code_id:78, procedure_code_id:102,
+              claim_amount:7500, approved_amount:7100, num_procedures:4, num_diagnoses:2, los:5,
+              lab_tests:5, prescriptions:4, provider_avg_claim:6500, provider_fraud_rate:0.03, provider_claim_count:95 },
+    fraud1: { patient_age:54, gender:"M", insurance_type:"Medicare", prior_claims_6m:8, chronic_condition:"0",
+              specialty:"Surgery", emergency_flag:"0", diagnosis_code_id:145, procedure_code_id:189,
+              claim_amount:8900, approved_amount:1200, num_procedures:12, num_diagnoses:7, los:0,
+              lab_tests:16, prescriptions:11, provider_avg_claim:7200, provider_fraud_rate:0.41, provider_claim_count:28 },
+    fraud2: { patient_age:44, gender:"F", insurance_type:"Medicaid", prior_claims_6m:6, chronic_condition:"0",
+              specialty:"General Practice", emergency_flag:"0", diagnosis_code_id:9, procedure_code_id:14,
+              claim_amount:5400, approved_amount:980, num_procedures:9, num_diagnoses:6, los:1,
+              lab_tests:15, prescriptions:9, provider_avg_claim:4800, provider_fraud_rate:0.35, provider_claim_count:42 },
+    fraud3: { patient_age:61, gender:"M", insurance_type:"PPO", prior_claims_6m:14, chronic_condition:"1",
+              specialty:"Neurology", emergency_flag:"0", diagnosis_code_id:88, procedure_code_id:120,
+              claim_amount:6200, approved_amount:1050, num_procedures:11, num_diagnoses:8, los:1,
+              lab_tests:13, prescriptions:12, provider_avg_claim:5100, provider_fraud_rate:0.38, provider_claim_count:55 },
+};
+
+function clearActive() {
+    document.querySelectorAll(".sample-card").forEach(c => c.classList.remove("active"));
+}
+
+function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+}
+
+function setSelect(id, val) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    for (let opt of el.options) opt.selected = (opt.value === String(val) || opt.text === String(val));
+}
+
+function fillSample(key) {
+    const s = SAMPLES[key];
+    if (!s) return;
+    clearActive();
+    document.getElementById("card-" + key).classList.add("active");
+
+    setVal("f_patient_age",          s.patient_age);
+    setVal("f_prior_claims_6m",      s.prior_claims_6m);
+    setVal("f_diagnosis_code_id",    s.diagnosis_code_id);
+    setVal("f_procedure_code_id",    s.procedure_code_id);
+    setVal("claimAmt",               s.claim_amount);
+    setVal("approvedAmt",            s.approved_amount);
+    setVal("f_num_procedures",       s.num_procedures);
+    setVal("f_num_diagnoses",        s.num_diagnoses);
+    setVal("f_los",                  s.los);
+    setVal("f_lab_tests",            s.lab_tests);
+    setVal("f_prescriptions",        s.prescriptions);
+    setVal("f_provider_avg_claim",   s.provider_avg_claim);
+    setVal("f_provider_fraud_rate",  s.provider_fraud_rate);
+    setVal("f_provider_claim_count", s.provider_claim_count);
+
+    setSelect("f_gender",            s.gender);
+    setSelect("f_insurance_type",    s.insurance_type);
+    setSelect("f_chronic_condition", s.chronic_condition);
+    setSelect("f_specialty",         s.specialty);
+    setSelect("f_emergency_flag",    s.emergency_flag);
+
+    updateRatio();
+    document.getElementById("claimForm").scrollIntoView({ behavior:"smooth", block:"start" });
+}
+
+// Approval ratio live preview
+const claimAmt    = document.getElementById("claimAmt");
+const approvedAmt = document.getElementById("approvedAmt");
+const ratioDisp   = document.getElementById("ratioDisplay");
+const ratioBar    = document.getElementById("ratioBar");
+
+function updateRatio() {
+    const c = parseFloat(claimAmt.value) || 1;
+    const a = parseFloat(approvedAmt.value) || 0;
+    const r = Math.min(a / c, 1);
+    ratioDisp.textContent = (r * 100).toFixed(1) + "%";
+    ratioBar.style.width  = (r * 100) + "%";
+    ratioBar.className    = "risk-bar " + (r >= 0.7 ? "risk-low" : r >= 0.4 ? "risk-medium" : "risk-high");
+}
+claimAmt.addEventListener("input", updateRatio);
+approvedAmt.addEventListener("input", updateRatio);
+{% endblock %}

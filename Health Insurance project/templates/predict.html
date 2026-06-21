@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Analyze Claim — FraudGuard AI{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-2 mb-3" style="color:var(--muted); font-size:.88rem;">
+    <a href="/" style="color:var(--muted); text-decoration:none;">Dashboard</a> /
+    <span style="color:var(--text);">Analyze Claim</span>
+</div>
+
+<div style="max-width:900px;">
+    <h2 style="font-size:1.4rem; font-weight:700; margin-bottom:.5rem;">🔍 Analyze Insurance Claim</h2>
+    <p class="text-muted text-sm mb-3">Enter claim details below. The ensemble AI system will assess fraud risk across multiple models.</p>
+
+    {% if not models_loaded %}
+    <div class="alert alert-warning mb-3">
+        ⚠️ <strong>Demo Mode:</strong> Using heuristic scoring. Train models via the notebook for ML predictions.
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-danger mb-3">❌ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/predict">
+        <div class="card mb-3">
+            <div class="form-grid">
+                <div class="form-section-title">👤 Patient Information</div>
+                <div class="form-group">
+                    <label>Patient Age</label>
+                    <input type="number" name="patient_age" value="45" min="1" max="120" required>
+                </div>
+                <div class="form-group">
+                    <label>Gender</label>
+                    <select name="gender">
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Insurance Type</label>
+                    <select name="insurance_type">
+                        <option value="PPO">PPO</option>
+                        <option value="HMO">HMO</option>
+                        <option value="EPO">EPO</option>
+                        <option value="Medicare">Medicare</option>
+                        <option value="Medicaid">Medicaid</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Prior Claims (last 6 months)</label>
+                    <input type="number" name="prior_claims_6m" value="1" min="0" max="50" required>
+                </div>
+                <div class="form-group">
+                    <label>Chronic Condition?</label>
+                    <select name="chronic_condition">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="form-section-title">🏥 Provider & Claim Details</div>
+                <div class="form-group">
+                    <label>Provider Specialty</label>
+                    <select name="specialty">
+                        <option>General Practice</option>
+                        <option>Cardiology</option>
+                        <option>Orthopedics</option>
+                        <option>Neurology</option>
+                        <option>Oncology</option>
+                        <option>Dermatology</option>
+                        <option>Psychiatry</option>
+                        <option>Emergency Medicine</option>
+                        <option>Radiology</option>
+                        <option>Surgery</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Emergency Case?</label>
+                    <select name="emergency_flag">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Diagnosis Code ID (1–200)</label>
+                    <input type="number" name="diagnosis_code_id" value="15" min="1" max="200" required>
+                </div>
+                <div class="form-group">
+                    <label>Procedure Code ID (1–200)</label>
+                    <input type="number" name="procedure_code_id" value="20" min="1" max="200" required>
+                </div>
+
+                <div class="form-section-title">💰 Financial Details</div>
+                <div class="form-group">
+                    <label>Claim Amount ($)</label>
+                    <input type="number" name="claim_amount" value="1500" min="0" step="0.01" required id="claimAmt">
+                </div>
+                <div class="form-group">
+                    <label>Approved Amount ($)</label>
+                    <input type="number" name="approved_amount" value="1350" min="0" step="0.01" required id="approvedAmt">
+                </div>
+
+                <div class="form-section-title">🩺 Clinical Details</div>
+                <div class="form-group">
+                    <label>Number of Procedures</label>
+                    <input type="number" name="num_procedures" value="2" min="1" max="50" required>
+                </div>
+                <div class="form-group">
+                    <label>Number of Diagnoses</label>
+                    <input type="number" name="num_diagnoses" value="1" min="1" max="20" required>
+                </div>
+                <div class="form-group">
+                    <label>Days in Hospital (LOS)</label>
+                    <input type="number" name="los" value="2" min="0" max="365" required>
+                </div>
+                <div class="form-group">
+                    <label>Lab Tests Ordered</label>
+                    <input type="number" name="lab_tests" value="2" min="0" max="50" required>
+                </div>
+                <div class="form-group">
+                    <label>Prescriptions</label>
+                    <input type="number" name="prescriptions" value="1" min="0" max="50" required>
+                </div>
+
+                <div class="form-section-title">📊 Provider Aggregates (optional)</div>
+                <div class="form-group">
+                    <label>Provider Avg Claim ($)</label>
+                    <input type="number" name="provider_avg_claim" value="1500" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Provider Historical Fraud Rate (0–1)</label>
+                    <input type="number" name="provider_fraud_rate" value="0.05" min="0" max="1" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Provider Total Claims</label>
+                    <input type="number" name="provider_claim_count" value="50" min="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Live ratio preview -->
+        <div class="card mb-3" style="padding:1rem 1.5rem;">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-muted">Approval Ratio Preview</span>
+                <span id="ratioDisplay" style="font-weight:700; font-size:1.1rem;">90.0%</span>
+            </div>
+            <div class="risk-bar-wrap mt-1" style="height:10px;">
+                <div class="risk-bar" id="ratioBar" style="width:90%; background: linear-gradient(90deg,#22c55e,#16a34a);"></div>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary" style="font-size:1rem; padding:.8rem 2rem;">
+                🔍 Analyze Claim
+            </button>
+            <button type="reset" class="btn btn-outline">Reset</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+const claimAmt   = document.getElementById("claimAmt");
+const approvedAmt= document.getElementById("approvedAmt");
+const ratioDisp  = document.getElementById("ratioDisplay");
+const ratioBar   = document.getElementById("ratioBar");
+
+function updateRatio() {
+    const c = parseFloat(claimAmt.value) || 1;
+    const a = parseFloat(approvedAmt.value) || 0;
+    const r = Math.min(a / c, 1);
+    ratioDisp.textContent = (r*100).toFixed(1) + "%";
+    ratioBar.style.width  = (r*100) + "%";
+    ratioBar.className = "risk-bar " + (r >= 0.7 ? "risk-low" : r >= 0.4 ? "risk-medium" : "risk-high");
+}
+claimAmt.addEventListener("input", updateRatio);
+approvedAmt.addEventListener("input", updateRatio);
+{% endblock %}

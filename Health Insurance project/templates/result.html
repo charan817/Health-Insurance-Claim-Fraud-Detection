@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Fraud Analysis Result — FraudGuard AI{% endblock %}
+
+{% block extra_style %}
+.result-hero { border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; display:flex; align-items:center; gap:1.5rem; }
+.result-hero.fraud { background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 2px solid #fca5a5; }
+.result-hero.legit { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; }
+.result-icon { font-size: 3.5rem; }
+.result-title { font-size: 1.6rem; font-weight: 800; }
+.result-hero.fraud .result-title { color: #991b1b; }
+.result-hero.legit .result-title { color: #166534; }
+.model-score-bar { display:flex; align-items:center; gap:1rem; margin-bottom:.75rem; }
+.model-name { width: 180px; font-size:.85rem; font-weight:600; flex-shrink:0; }
+.bar-container { flex:1; background:#f1f5f9; border-radius:99px; height:14px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:99px; transition: width 1s ease; }
+.bar-pct { width: 48px; text-align:right; font-size:.82rem; font-weight:700; flex-shrink:0; }
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-2 mb-3" style="color:var(--muted); font-size:.88rem;">
+    <a href="/" style="color:var(--muted); text-decoration:none;">Dashboard</a> /
+    <a href="/predict" style="color:var(--muted); text-decoration:none;">Analyze Claim</a> /
+    <span style="color:var(--text);">Result</span>
+</div>
+
+<!-- RESULT HERO -->
+<div class="result-hero {% if is_fraud %}fraud{% else %}legit{% endif %}">
+    <div class="result-icon">{% if is_fraud %}🚨{% else %}✅{% endif %}</div>
+    <div>
+        <div class="result-title">{% if is_fraud %}FRAUD DETECTED{% else %}CLAIM APPEARS LEGITIMATE{% endif %}</div>
+        <div style="margin-top:.4rem; font-size:.95rem; opacity:.8;">
+            Ensemble Fraud Probability: <strong>{{ ensemble_prob }}%</strong> &nbsp;·&nbsp;
+            Risk Level: <span class="badge badge-{{ risk_level | lower }}">{{ risk_level }}</span>
+        </div>
+        {% if not models_loaded %}
+        <div style="font-size:.78rem; margin-top:.5rem; opacity:.65;">⚠️ Demo mode — using heuristic scoring</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid-2 mb-3">
+    <!-- PROBABILITY GAUGE -->
+    <div class="card">
+        <div class="card-header">📊 Fraud Probability Gauge</div>
+        <div style="text-align:center; padding:1rem 0;">
+            <canvas id="gaugeChart" width="220" height="220" style="max-width:220px;"></canvas>
+            <div style="font-size:2rem; font-weight:800; margin-top:.5rem;
+                 color:{% if risk_level=='HIGH' %}#dc2626{% elif risk_level=='MEDIUM' %}#d97706{% else %}#16a34a{% endif %}">
+                {{ ensemble_prob }}%
+            </div>
+            <div class="text-muted text-sm">Ensemble Fraud Score</div>
+        </div>
+    </div>
+
+    <!-- MODEL SCORES -->
+    <div class="card">
+        <div class="card-header">🤖 Individual Model Scores</div>
+        {% for model, score in scores.items() %}
+        <div class="model-score-bar">
+            <div class="model-name">{{ model.replace('_',' ') }}</div>
+            <div class="bar-container">
+                <div class="bar-fill" style="
+                    width:{{ score }}%;
+                    background: {% if score >= 70 %}linear-gradient(90deg,#f87171,#dc2626)
+                                {% elif score >= 40 %}linear-gradient(90deg,#fcd34d,#d97706)
+                                {% else %}linear-gradient(90deg,#4ade80,#16a34a){% endif %};">
+                </div>
+            </div>
+            <div class="bar-pct" style="color:{% if score>=70 %}#dc2626{% elif score>=40 %}#d97706{% else %}#16a34a{% endif %};">
+                {{ score }}%
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- RISK FACTORS & CLAIM SUMMARY -->
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">⚠️ Risk Factors Identified</div>
+        {% for factor in risk_factors %}
+        <div style="display:flex; align-items:flex-start; gap:.7rem; padding:.6rem 0; border-bottom:1px solid var(--border);">
+            <span>{% if loop.last and risk_factors|length==1 %}✅{% else %}🔴{% endif %}</span>
+            <span style="font-size:.88rem;">{{ factor }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">📋 Claim Summary</div>
+        <table>
+            <tr><td class="text-muted text-sm">Claim Amount</td><td><strong>${{ "${:,.2f}".format(raw.claim_amount) }}</strong></td></tr>
+            <tr><td class="text-muted text-sm">Approved Amount</td><td>${{ "${:,.2f}".format(raw.approved_amount) }}</td></tr>
+            <tr><td class="text-muted text-sm">Approval Ratio</td><td>{{ "%.1f"|format(raw.approval_ratio*100) }}%</td></tr>
+            <tr><td class="text-muted text-sm">Num Procedures</td><td>{{ raw.num_procedures }}</td></tr>
+            <tr><td class="text-muted text-sm">Num Diagnoses</td><td>{{ raw.num_diagnoses }}</td></tr>
+            <tr><td class="text-muted text-sm">Days in Hospital</td><td>{{ raw.days_in_hospital }}</td></tr>
+            <tr><td class="text-muted text-sm">Prior Claims (6m)</td><td>{{ raw.prior_claims_6m }}</td></tr>
+            <tr><td class="text-muted text-sm">Lab Tests</td><td>{{ raw.lab_tests_ordered }}</td></tr>
+            <tr><td class="text-muted text-sm">Prescriptions</td><td>{{ raw.prescriptions }}</td></tr>
+        </table>
+    </div>
+</div>
+
+<!-- ACTIONS -->
+<div class="flex gap-2">
+    <a href="/predict" class="btn btn-primary">🔍 Analyze Another Claim</a>
+    <a href="/"        class="btn btn-outline">← Back to Dashboard</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+// Doughnut gauge
+const prob = {{ ensemble_prob }};
+const remaining = 100 - prob;
+const ctx = document.getElementById("gaugeChart").getContext("2d");
+new Chart(ctx, {
+    type: "doughnut",
+    data: {
+        datasets: [{
+            data: [prob, remaining],
+            backgroundColor: [
+                prob >= 70 ? "#dc2626" : prob >= 40 ? "#d97706" : "#16a34a",
+                "#f1f5f9"
+            ],
+            borderWidth: 0,
+            circumference: 270,
+            rotation: 225,
+        }]
+    },
+    options: { plugins: { legend: { display: false }, tooltip: { enabled: false } }, cutout: "75%" }
+});
+{% endblock %}

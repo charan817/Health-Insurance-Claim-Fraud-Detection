@@ -1,0 +1,21 @@
+# Health Insurance Claim Fraud Detection
+# Windows / Python 3.12 / CPU only — NO TensorFlow, NO PyTorch, NO Keras
+#
+# Install:
+#   pip install -r requirements.txt
+
+numpy
+pandas
+scikit-learn
+joblib
+
+xgboost
+lightgbm
+
+matplotlib
+seaborn
+
+flask
+
+jupyter
+ipykernel
